@@ -17,6 +17,9 @@ import { IdentitiesView } from "@/components/ide/IdentitiesView";
 import { OracleAssistant } from "@/components/ide/OracleAssistant";
 import { SearchPane } from "@/components/ide/SearchPane";
 import { SecurityView } from "@/components/ide/SecurityView";
+import { TestingView, TemplatesView } from "@/components/ide/TestingView";
+import { GeneratePropertyTest } from "@/components/Testing/GeneratePropertyTest";
+import { useProptestOutputWatcher } from "@/hooks/useProptestOutputWatcher";
 import { EventsPane } from "@/components/ide/EventsPane";
 import { StatusBar } from "@/components/ide/StatusBar";
 import { Terminal } from "@/components/ide/Terminal";
@@ -105,6 +108,40 @@ const formatRunTime = () =>
     second: "2-digit",
   });
 
+// ---------------------------------------------------------------------------
+// TestingSidebar — three sub-tabs: Snippets | Templates | Generate
+// ---------------------------------------------------------------------------
+
+function TestingSidebar() {
+  const [tab, setTab] = useState<"snippets" | "templates" | "generate">("snippets");
+  return (
+    <div className="flex h-full flex-col">
+      {/* Sub-tab bar */}
+      <div className="flex shrink-0 border-b border-sidebar-border">
+        {(["snippets", "templates", "generate"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`flex-1 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors border-b-2 ${
+              tab === t
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t === "snippets" ? "Snippets" : t === "templates" ? "Templates" : "Generate"}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {tab === "snippets"  && <TestingView />}
+        {tab === "templates" && <TemplatesView />}
+        {tab === "generate"  && <GeneratePropertyTest />}
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const {
     files,
@@ -140,7 +177,9 @@ export default function Index() {
   const { setDiagnostics, clearDiagnostics } = useDiagnosticsStore();
   const { addContract } = useDeployedContractsStore();
 
-  const [bottomTab, setBottomTab] = useState<"console" | "events">("console");
+  const [bottomTab, setBottomTab] = useState<"console" | "events" | "proptest">("console");
+
+  const [invokeState, setInvokeState] = useState<{
     phase: "idle" | "preparing" | "success" | "failed";
     message: string;
   }>({ phase: "idle", message: "Invoke" });
@@ -159,6 +198,8 @@ export default function Index() {
     loadIdentities();
   }, [loadIdentities]);
 
+  // Watch terminal output and drive the proptest store in real time
+  useProptestOutputWatcher();
   useEffect(() => {
     if (!hydrationComplete) {
       return;
@@ -571,42 +612,40 @@ export default function Index() {
           </div>
           <div className="h-56 shrink-0 border-t border-border flex flex-col">
             {/* Bottom panel tab bar */}
-            <div className="flex shrink-0 items-center border-b border-border bg-secondary px-1">
-              <button
-                type="button"
-                onClick={() => setBottomTab("console")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors border-b-2 ${
-                  bottomTab === "console"
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-                aria-selected={bottomTab === "console"}
-                role="tab"
-              >
-                Console
-              </button>
-              <button
-                type="button"
-                onClick={() => setBottomTab("events")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors border-b-2 ${
-                  bottomTab === "events"
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-                aria-selected={bottomTab === "events"}
-                role="tab"
-              >
-                Events
-              </button>
+            <div
+              className="flex shrink-0 items-center border-b border-border bg-secondary"
+              role="tablist"
+              aria-label="Bottom panel tabs"
+            >
+              {(
+                [
+                  { id: "console",  label: "Console"  },
+                  { id: "events",   label: "Events"   },
+                  { id: "proptest", label: "Proptest" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={bottomTab === tab.id}
+                  onClick={() => setBottomTab(tab.id)}
+                  className={`px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors border-b-2 ${
+                    bottomTab === tab.id
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
             {/* Tab panels */}
             <div className="min-h-0 flex-1 overflow-hidden">
-              {bottomTab === "console" ? (
-                <Terminal />
-              ) : (
-                <EventsPane />
-              )}
+              {bottomTab === "console"  && <Terminal />}
+              {bottomTab === "events"   && <EventsPane />}
+              {bottomTab === "proptest" && <ProptestView />}
             </div>
           </div>
         </main>
