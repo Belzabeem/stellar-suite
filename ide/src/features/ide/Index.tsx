@@ -226,7 +226,7 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handler);
   }, [handleSave]);
 
-  
+
   const handleCompile = useCallback(async () => {
     setIsCompiling(true);
     setBuildState("building");
@@ -354,7 +354,7 @@ const Index = () => {
       walletType,
       webWalletPublicKey,
     ]
-    async (fn: string, args: string, isSimulation: boolean) => {
+    , async (fn: string, args: string, isSimulation: boolean) => {
       setTerminalExpanded(true);
       const signer =
         activeContext?.type === "web-wallet"
@@ -422,7 +422,7 @@ const Index = () => {
     },
     [renameNode]
   );
-  
+
   const handleExplorerDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -596,7 +596,7 @@ const Index = () => {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <DeploymentsView 
+              <DeploymentsView
                 activeContractId={contractId}
                 onSelectContract={(id, net) => {
                   setContractId(id);
@@ -652,7 +652,7 @@ const Index = () => {
                       <IdentitiesView network={network} />
                     )}
                     {leftSidebarTab === "deployments" && (
-                      <DeploymentsView 
+                      <DeploymentsView
                         activeContractId={contractId}
                         onSelectContract={(id, net) => {
                           setContractId(id);
