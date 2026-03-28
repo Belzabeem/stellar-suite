@@ -42,7 +42,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCursorChange, onSave }) => {
   const { openErrorHelp } = useErrorHelpStore();
   const rustProviderRegistered = useRef(false);
 
-  useTestGutter({ editor: editorRef.current, monaco: monacoRef.current, filePath: activeFileId });
   const monacoRef = useRef<typeof Monaco | null>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);  const semanticProviderRegistered = useRef(false);
   const coverageDecorations = useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
@@ -60,6 +59,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCursorChange, onSave }) => {
   useEffect(() => {
     activeFileIdRef.current = activeFileId;
   }, [activeFileId]);
+
+  useTestGutter({ editor: editorRef.current, monaco: monacoRef.current, filePath: activeFileId });
 
   const activeFile = React.useMemo(() => {
     const findNode = (
