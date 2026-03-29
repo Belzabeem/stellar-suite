@@ -18,6 +18,7 @@ import {
   BarChart2,
   GitMerge,
   TrendingUp,
+  ClipboardList,
 } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -37,7 +38,8 @@ export type ActivityTab =
   | "binary-diff"
   | "oracle"
   | "benchmarks"
-  | "inspector";
+  | "inspector"
+  | "audit";
 
 interface ActivityBarProps {
   activeTab: ActivityTab;
@@ -143,6 +145,12 @@ const tabs: ActivityBarTab[] = [
     icon: <BarChart2 className="h-5 w-5" />,
     label: "Benchmarks",
     title: "Criterion Benchmark Dashboard",
+  },
+  {
+    id: "audit",
+    icon: <ClipboardList className="h-5 w-5" />,
+    label: "Audit Log",
+    title: "Project Audit Log",
   },
 ];
 

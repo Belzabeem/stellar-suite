@@ -57,6 +57,9 @@ import { useDiagnosticsStore } from "@/store/useDiagnosticsStore";
 import { useIdentityStore } from "@/store/useIdentityStore";
 import { useWorkspaceStore, flattenWorkspaceFiles } from "@/store/workspaceStore";
 import { useSharedEnvironmentStore } from "@/store/useSharedEnvironmentStore";
+import { useAuditLogStore } from "@/store/useAuditLogStore";
+import { useAuth } from "@/hooks/useAuth";
+import { AuditLogView } from "@/components/ide/AuditLogView";
 import { useVCSStore } from "@/store/vcsStore";
 import { useErrorHelpStore } from "@/store/useErrorHelpStore";
 import ErrorHelpPanel from "@/components/ide/ErrorHelpPanel";
@@ -216,6 +219,9 @@ export default function Index() {
   const { localRepoInitialized, hydrateLocalRepo, refreshLocalStatuses } =
     useVCSStore();
   const sharedEnvConfig = useSharedEnvironmentStore((s) => s.config);
+  const { addLog: addAuditLog } = useAuditLogStore();
+  const { user } = useAuth();
+  const auditUser = user?.name ?? user?.email ?? "Guest";
   const { setDiagnostics, clearDiagnostics } = useDiagnosticsStore();
   const { addContract } = useDeployedContractsStore();
   const { isOpen: isErrorHelpOpen, errorCode, closeErrorHelp } = useErrorHelpStore();
@@ -355,16 +361,36 @@ export default function Index() {
 
       appendTerminalOutput("✓ Compilation finished.\r\n");
       setBuildState("success");
+      addAuditLog({
+        category: "build",
+        action: "Contract Build",
+        status: "success",
+        user: auditUser,
+        params: { contractName, network },
+        details: "Contract compiled successfully",
+        rawJson: { contractName, network, timestamp: new Date().toISOString() },
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Build failed";
       appendTerminalOutput(`Build failed: ${message}\r\n`);
       setBuildState("error");
+      addAuditLog({
+        category: "build",
+        action: "Contract Build",
+        status: "failure",
+        user: auditUser,
+        params: { contractName, network },
+        details: message,
+        rawJson: { contractName, network, error: message, timestamp: new Date().toISOString() },
+      });
     } finally {
       setIsCompiling(false);
       setTimeout(() => setBuildState("idle"), 1000);
     }
   }, [
+    addAuditLog,
     appendTerminalOutput,
+    auditUser,
     clearDiagnostics,
     compilePayload,
     contractName,
@@ -573,14 +599,39 @@ export default function Index() {
       appendTerminalOutput(`✓ Contract instantiated! ID: ${newContractId}\r\n`);
       appendTerminalOutput(`  Transaction: ${transactionHash}\r\n`);
 
+      addAuditLog({
+        category: "deploy",
+        action: "Contract Deploy",
+        status: "success",
+        user: auditUser,
+        params: {
+          contractId: newContractId,
+          contractName,
+          network,
+          wasmHash,
+          transactionHash,
+        },
+        details: `Deployed to ${network} — ID: ${newContractId}`,
+        rawJson: {
+          contractId: newContractId,
+          contractName,
+          network,
+          wasmHash,
+          transactionHash,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       setDeploymentStep("success");
       toast.success(`Contract deployed: ${newContractId.substring(0, 8)}…`);
     },
     [
+      addAuditLog,
       activeContext,
       activeIdentity,
       addContract,
       appendTerminalOutput,
+      auditUser,
       contractName,
       network,
       setContractId,
@@ -650,10 +701,22 @@ export default function Index() {
       setDeploymentError(message);
       appendTerminalOutput(`✗ Deployment failed: ${message}\r\n`);
       toast.error(message);
+      addAuditLog({
+        category: "deploy",
+        action: "Contract Deploy",
+        status: "failure",
+        user: auditUser,
+        params: { contractName, network },
+        details: message,
+        rawJson: { contractName, network, error: message, timestamp: new Date().toISOString() },
+      });
     }
   }, [
+    addAuditLog,
     appendTerminalOutput,
+    auditUser,
     compilePayload,
+    contractName,
     network,
     openDeployModal,
     runInstantiate,
@@ -999,6 +1062,7 @@ export default function Index() {
             {leftSidebarTab === "benchmarks" ? <BenchmarkDashboard /> : null}
             {leftSidebarTab === "multisig" ? <MultisigView network={network} /> : null}
             {leftSidebarTab === "liquidity" ? <LiquidityPoolSimulator /> : null}
+            {leftSidebarTab === "audit" ? <AuditLogView /> : null}
           </aside>
         ) : null}
 
