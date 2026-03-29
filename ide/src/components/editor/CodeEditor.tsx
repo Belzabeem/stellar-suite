@@ -29,6 +29,7 @@ import { GitGutterMarkers } from "./GitGutterMarkers";
 import { git } from "@/lib/git";
 import "@/styles/editor-gutter.css";
 import { referenceProvider } from "@/lib/referenceProvider";
+import { useTheme } from "next-themes";
 import { useUserSettingsStore } from "@/store/useUserSettingsStore";
 
 interface CodeEditorProps {
