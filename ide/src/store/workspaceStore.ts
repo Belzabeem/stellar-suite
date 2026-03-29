@@ -114,9 +114,7 @@ interface WorkspaceState {
   setCustomHeaders: (headers: CustomHeaders) => void;
 
   // UI Actions
-  setTerminalExpanded: (
-    expanded: boolean | ((prev: boolean) => boolean),
-  ) => void;
+  setTerminalExpanded: (expanded: boolean | ((prev: boolean) => boolean)) => void;
   setTerminalOutput: (output: string | ((prev: string) => string)) => void;
   setIsCompiling: (isCompiling: boolean) => void;
   setBuildState: (state: BuildState) => void;
@@ -390,7 +388,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         set((state) => ({ terminalOutput: state.terminalOutput + chunk })),
       setDiffViewPath: (diffViewPath) => set({ diffViewPath }),
 
-      // Misc Actions Implementation
+      // Misc Actions
       setHydrationComplete: (ready) => set({ hydrationComplete: ready }),
     }),
     {

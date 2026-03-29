@@ -29,6 +29,8 @@ import { SignInButton } from "@/components/auth/SignInButton";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { SaveToCloudButton } from "@/components/cloud/SaveToCloudButton";
 import { useAuth } from "@/hooks/useAuth";
+import { LiveShareButton } from "@/components/ide/LiveShareButton";
+import { useLiveShareStore } from "@/store/useLiveShareStore";
 
 /* ✅ ADD THIS */
 import NotificationCenter from "@/components/notifications/NotificationCenter";
@@ -84,7 +86,9 @@ export function Toolbar({
     [onNetworkChange, setNetwork],
   );
 
+  const { mode } = useLiveShareStore();
   const { isAuthenticated } = useAuth();
+  const isReadOnly = mode === "recipient";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -110,64 +114,57 @@ export function Toolbar({
             Kit CANVAS
           </span>
 
-          <BuildButton
-            onClick={onCompile}
-            isBuilding={isCompiling}
-            state={isCompiling ? "building" : buildState}
-          />
-
-          <Button onClick={onDeploy} variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
+          <BuildButton onClick={onCompile} isBuilding={isCompiling} state={isCompiling ? "building" : buildState} disabled={isReadOnly} />
+          
+          <Button onClick={onDeploy} variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={isReadOnly}>
             <Upload className="h-3.5 w-3.5" />
             Deploy
           </Button>
 
-          <Button variant="ghost" size="sm" onClick={onTest} className="h-8 gap-1.5 text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={onTest} className="h-8 gap-1.5 text-xs" disabled={isReadOnly}>
             <TestTube className="h-3.5 w-3.5" />
             Test
           </Button>
 
-          {onRunClippy && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRunClippy}
-              disabled={isRunningClippy}
-              className="h-8 gap-1.5 text-xs"
-            >
-              {isRunningClippy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
+          {onRunClippy ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onRunClippy} disabled={isRunningClippy || isReadOnly} className="h-8 gap-1.5 text-xs">
+              {isRunningClippy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               Run Clippy
             </Button>
           )}
 
-          {onRunAudit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRunAudit}
-              disabled={isRunningAudit}
-              className="h-8 gap-1.5 text-xs"
-            >
-              {isRunningAudit ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ShieldAlert className="h-3.5 w-3.5" />
-              )}
+          {onRunAudit ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onRunAudit} disabled={isRunningAudit || isReadOnly} className="h-8 gap-1.5 text-xs">
+              {isRunningAudit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5" />}
               Audit
             </Button>
           )}
 
           <GitBlameToggle />
 
-          <Button onClick={() => setImportOpen(true)} variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button onClick={() => setImportOpen(true)} variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={isReadOnly}>
             <Github className="h-3.5 w-3.5" />
             Import
           </Button>
+          <Button onClick={() => setCiOpen(true)} variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={isReadOnly}>
+            <FileCode2 className="h-3.5 w-3.5" />
+            Export CI
+          </Button>
+          <Button
+            onClick={() => setStateEditorOpen(true)}
+            variant="ghost"
+            size="sm"
+            className={`h-8 gap-1.5 text-xs ${hasMockState ? "text-primary" : ""}`}
+            title="Mock Ledger State"
+            disabled={isReadOnly}
+          >
+            <Database className="h-3.5 w-3.5" />
+            Mock State{hasMockState ? ` (${mockLedgerState.entries.length})` : ""}
+          </Button>
 
-          <SaveToCloudButton />
+          <SaveToCloudButton disabled={isReadOnly} />
+
+          <LiveShareButton />
 
           {saveStatus && (
             <span className="ml-2 font-mono text-[10px] text-muted-foreground">
@@ -207,7 +204,128 @@ export function Toolbar({
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* ── Mobile expanded menu ── */}
+      {mobileMenuOpen ? (
+        <div className="flex flex-col gap-2 border-b border-border px-2 pb-2 md:hidden">
+          <Button
+            onClick={() => {
+              onCompile();
+              setMobileMenuOpen(false);
+            }}
+            disabled={isCompiling}
+            className="h-9 flex-1 gap-1 text-[11px]"
+          >
+            <Play className="h-3 w-3" />
+            {isCompiling ? "..." : "Build"}
+          </Button>
+
+          <Button
+            onClick={() => {
+              onDeploy();
+              setMobileMenuOpen(false);
+            }}
+            variant="outline"
+            className="h-9 flex-1 gap-1 text-[11px]"
+          >
+            <Upload className="h-3 w-3" />
+            Deploy
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 flex-1 gap-1 text-[11px]"
+            onClick={() => {
+              onTest();
+              setMobileMenuOpen(false);
+            }}
+          >
+            Test
+          </Button>
+
+          {onRunClippy ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 flex-1 gap-1 text-[11px]"
+              onClick={() => {
+                onRunClippy();
+                setMobileMenuOpen(false);
+              }}
+              disabled={isRunningClippy}
+            >
+              {isRunningClippy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              Clippy
+            </Button>
+          ) : null}
+
+          {onRunAudit ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 flex-1 gap-1 text-[11px]"
+              onClick={() => {
+                onRunAudit();
+                setMobileMenuOpen(false);
+              }}
+              disabled={isRunningAudit}
+            >
+              {isRunningAudit ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldAlert className="h-3 w-3" />}
+              Audit
+            </Button>
+          ) : null}
+
+          <Button
+            variant="outline"
+            className="h-9 flex-1 gap-1 text-[11px]"
+            onClick={() => {
+              setImportOpen(true);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Github className="h-3 w-3" />
+            Import GitHub
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-9 flex-1 gap-1 text-[11px]"
+            onClick={() => {
+              setCiOpen(true);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <FileCode2 className="h-3 w-3" />
+            Export CI
+          </Button>
+          <Button
+            className={`h-9 flex-1 gap-1 text-[11px] ${hasMockState ? "text-primary" : ""}`}
+            onClick={() => {
+              setStateEditorOpen(true);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Database className="h-3 w-3" />
+            Mock State
+          </Button>
+
+          <LiveShareButton />
+
+
+          <Button
+            variant="outline"
+            className="h-9 flex-1 gap-1 text-[11px]"
+            onClick={() => {
+              setSettingsOpen(true);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Settings className="h-3 w-3" />
+            Settings
+          </Button>
+        </div>
+      ) : null}
+
       <ImportGithubModal open={importOpen} onClose={() => setImportOpen(false)} />
       <CiConfigGenerator open={ciOpen} onOpenChange={setCiOpen} />
       <StateMockEditor

@@ -25,6 +25,8 @@ import { useTheme } from "next-themes";
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import { analyzeMathSafety } from "../../lib/mathSafetyAnalyzer";
 import { useMathSafetyStore } from "../../store/useMathSafetyStore";
+import { useUserSettingsStore } from "@/store/useUserSettingsStore";
+import { useTheme } from "next-themes";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { GitBlameLines } from "./GitBlameLines";
 import { getAllMonacoCompletions } from "@/utils/proptestSnippets";
@@ -33,6 +35,7 @@ import { GitGutterMarkers } from "./GitGutterMarkers";
 import { git } from "@/lib/git";
 import "@/styles/editor-gutter.css";
 import { referenceProvider } from "@/lib/referenceProvider";
+import { useLiveShare } from "@/hooks/useLiveShare";
 import { useUserSettingsStore } from "@/store/useUserSettingsStore";
 
 interface CodeEditorProps {
@@ -47,7 +50,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCursorChange, onSave }) => {
   const { getFileCoverage } = useCoverageStore();
   const { setJumpToLine, saveViewState, getViewState } = useEditorStore();
   const { openErrorHelp } = useErrorHelpStore();
+  const { mode, isSharing, broadcastContentChange } = useLiveShare();
   const { theme: currentTheme } = useTheme();
+  const { fontSize } = useUserSettingsStore();
+  const rustProviderRegistered = useRef(false);
 
   const rustProviderRegistered = useRef(false);
   const monacoRef = useRef<typeof Monaco | null>(null);
@@ -98,6 +104,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCursorChange, onSave }) => {
   const handleEditorChange: OnChange = (value) => {
     if (value !== undefined) {
       updateFileContent(activeTabPath, value);
+      
+      // Broadcast change if in sharing mode
+      if (isSharing && mode === "broadcaster") {
+        broadcastContentChange(activeTabPath, value);
+      }
 
       setTimeout(() => {
         symbolIndexer.indexFiles(filesRef.current);
@@ -657,7 +668,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCursorChange, onSave }) => {
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
             options={{
-              fontSize: editorFontSize,
+              fontSize: fontSize,
+              readOnly: mode === "recipient",
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               automaticLayout: true,
